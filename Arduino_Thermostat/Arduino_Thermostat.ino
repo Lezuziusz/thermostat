@@ -91,7 +91,7 @@ void loop(void) {
   temp1 = temps1->getTemp();
 
   // following block is only to decrease display rate durig debug
-  #ifdef DEBUG
+  #ifdef DEBUG_MODE
   if (temp1 != oldtemp1){
     dp("Temp=");
     dpln(temp1);
