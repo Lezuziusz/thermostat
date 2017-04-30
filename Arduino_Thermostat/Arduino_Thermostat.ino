@@ -6,6 +6,8 @@
 #include "Sensor.h"
 #include "Config.h"
 
+#define VERSION "v1.0"
+
 //############ HW CONFIG
 // pin connected to temperature sensor DS18S20
 const byte TEMPS_1 = 7;
@@ -28,8 +30,6 @@ const byte LCD_D6 = 3;
 const byte LCD_D7 = 2;
 
 float tempDelta = 0.1;
-float eps = 0.5;      // 
-bool cooling = true;  // switch between heating and cooling
 
 // LCD display
 LiquidCrystal *lcd;
@@ -64,6 +64,12 @@ void setup(void) {
   btnUp = new Button(BTN_UP);
   relay1 = new Relay(REL_1);
   lcd->begin(16, 2);
+  
+  lcd->setCursor(0, 0);
+  lcd->print("Thermostat");
+  lcd->setCursor(0, 1);
+  lcd->print(VERSION);
+  delay(2000);
   
   if (!cfg.read()){
     dpln("Failed to load configuration");
@@ -153,7 +159,7 @@ void loop(void) {
     
   }
 
-    delay(100);
+  delay(100);
 
 }
 
