@@ -31,5 +31,9 @@ class Relay {
       this->setState(false);
     }
 
+    bool isOn(){
+      return state;
+    }
+
 };
 
