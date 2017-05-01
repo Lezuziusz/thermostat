@@ -61,11 +61,30 @@ unsigned long blinkStateEnd = millis();
 float temp1 = 0;
 float oldtemp1 = 0;
 
+byte bkslash[8] = {
+  B00000,
+  B10000,
+  B01000,
+  B00100,
+  B00010,
+  B00001,
+  B00000,
+};
+
+char anim[] = {'-',0,'|','/'};
+byte anim1State = 0;
+unsigned long anim1StateEnd = millis();
+#define ANIM_STATE_COUNT  4
+#define ANIM_DURATION     200
+
 ConfigEE cfg;
 
 void setup(void) {
   Serial.begin(115200);
+  
   lcd = new LiquidCrystal(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+  lcd->createChar(0, bkslash);
+  
   temps1 = new TempSensor(TEMPS_1);
   btnDown = new Button(BTN_DOWN);
   btnUp = new Button(BTN_UP);
@@ -73,13 +92,14 @@ void setup(void) {
   lcd->begin(16, 2);
   
   lcd->setCursor(0, 0);
-  lcd->print("Thermostat");
+  lcd->print(F("Thermostat"));
   lcd->setCursor(0, 1);
   lcd->print(VERSION);
   delay(2000);
+  lcd->clear();
   
   if (!cfg.read()){
-    dpln("Failed to load configuration");
+    dpln(F("Failed to load configuration"));
     cfg.setDefaults();
     cfg.write();
   }
@@ -99,6 +119,10 @@ void loop(void) {
   }
   #endif
 
+  // animate running operation
+  if (relay1->isOn()) 
+    animateOp1();
+
   // calculate blink ON/OFF state --------------
   if (millis() > blinkStateEnd){
     if (blinkPhase){
@@ -108,26 +132,29 @@ void loop(void) {
     blinkPhase = !blinkPhase;
   }
 
-  // display texts -----------------------------
+  // display operation mode: heating/cooling
   lcd->setCursor(0, 0);
-  if (mode == 2 && !blinkPhase)
-    lcd->print("     to: ");
+  if (mode == MODE_CONFIG_OP && !blinkPhase)
+    lcd->print("       : ");
   else  
     if (cfg.data.cooling)
-      lcd->print("Cool to: ");
+      lcd->print("Cooling: ");
     else
-      lcd->print("Heat to: ");
+      lcd->print("Heating: ");
 
+  // display configured temperature
   lcd->setCursor(9, 0);
-  if (mode == 1 && !blinkPhase)
+  if (mode == MODE_CONFIG_TEMP && !blinkPhase)
     lcd->print("     ");
   else
     lcd->print(cfg.data.temp);
 
+  // display degrees C
   lcd->setCursor(14, 0);
   lcd->print(char(223));
   lcd->print("C");
-  
+
+  // display ccurrent temperature
   lcd->setCursor(3, 1);
   lcd->print("Temp: ");
   lcd->print(temp1);
@@ -137,17 +164,21 @@ void loop(void) {
   // OPERATE RELAY1 ------------------------------
   if (cfg.data.cooling) {                       // if operation is COOLING
     if (relay1->isOn()) {                       // if cooling is ON
-      if (temp1 < cfg.data.temp-cfg.data.eps)   // then keep it on until temperature is lower than SET minus EPS
+      if (temp1 < cfg.data.temp-cfg.data.eps){  // then keep it on until temperature is lower than SET minus EPS
         relay1->off();                          // then turn it OFF
+        clearOp1();
+      }
         
     } else {                                        // if cooling is OFF
       if (temp1 > cfg.data.temp+cfg.data.eps)   // and current temperature is higer than SET plus EPS
         relay1->on();                           // then turn cooling ON
     }    
   }  else {                                     // if operation is HEATING
-    if (relay1->isOn()) {                         // if heating is ON
-      if (temp1 > cfg.data.temp+cfg.data.eps)   // then keep it ON until temperature is higher than SET plus EPS
+    if (relay1->isOn()) {                       // if heating is ON
+      if (temp1 > cfg.data.temp+cfg.data.eps){  // then keep it ON until temperature is higher than SET plus EPS
         relay1->off();                          // then turn it OFF
+        clearOp1();
+      }
         
     } else {                                        // if heating is OFF
       if (temp1 < cfg.data.temp-cfg.data.eps)   // and current temperature is lower than SET minus EPS
@@ -168,18 +199,18 @@ void loop(void) {
           mode = MODE_CONFIG_TEMP;
         break;
       case MODE_CONFIG_TEMP:
-          dpln("Set OP start");
+          dpln(F("Set OP start"));
           mode = MODE_CONFIG_OP;
         break;
       case MODE_CONFIG_OP:
-        dpln("Set TEMP start");
+        dpln(F("Set TEMP start"));
         mode = MODE_CONFIG_TEMP;
         break;
     }
 
   if (mode != MODE_NORMAL && millis() > modeEnd){
     mode = MODE_NORMAL;
-    dpln("Set end");
+    dpln(F("Set end"));
     cfg.write();
     cfg.print();
   }
@@ -208,6 +239,22 @@ void loop(void) {
 
   delay(100);
 
+}
+
+void clearOp1(){
+  lcd->setCursor(0,1);
+  lcd->write(' ');  
+}
+
+void animateOp1(){
+  if (millis() > anim1StateEnd){
+    anim1StateEnd = millis() + ANIM_DURATION;
+    lcd->setCursor(0,1);
+    lcd->write(anim[anim1State]);
+    anim1State++;
+    if (anim1State >= ANIM_STATE_COUNT) 
+      anim1State = 0;
+  }
 }
 
 
