@@ -6,7 +6,7 @@
 #include "Sensor.h"
 #include "Config.h"
 
-#define VERSION "v1.0"
+#define VERSION "v1.1"
 
 //############ HW CONFIG
 // pin connected to temperature sensor DS18S20
@@ -18,8 +18,6 @@ const byte REL_1 = 8;
 // Buttons
 const byte BTN_DOWN = A1;
 const byte BTN_UP = A2;
-const byte BTN_ENTER = A6;
-const byte BTN_EXIT = A7;
 
 // LCD display pins
 const byte LCD_RS = 12;

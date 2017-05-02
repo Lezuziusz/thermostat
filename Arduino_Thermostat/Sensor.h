@@ -1,16 +1,22 @@
 #include "debug.h"
+#include <DallasTemperature.h>
 
 class TempSensor {
   private:
     int pin;
-    OneWire *ds;    // DS18S20 sensor
+    OneWire *owb;             // pin connected to one-wire-bus
+    DallasTemperature *dst;   // Dallas temperature sensor
     float lastTemp;
     float currentTemp;
 
   public:
     TempSensor(int pin){
       this->pin = pin;
-      ds = new OneWire(pin);
+      owb = new OneWire(pin);
+      dst = new DallasTemperature(owb);
+      dst->begin();
+      dp("Temperature sensors found:");
+      dpln(dst->getDeviceCount());
       lastTemp = getTemp();
     }
 
@@ -19,49 +25,9 @@ class TempSensor {
   }
     
   float getTemp(){
-    //returns the temperature in degrees of Celsius
-    
-    byte data[12];
-    byte addr[8];
-    
-    if ( !ds->search(addr)) {
-      //no more sensors on chain, reset search
-      ds->reset_search();
-      return -1000;
-    }
-    
-    if ( OneWire::crc8( addr, 7) != addr[7]) {
-      dp("CRC is not valid!");
-      return -1000;
-    }
-    
-    if ( addr[0] != 0x10 && addr[0] != 0x28) {
-      dp("Device is not recognized");
-      return -1000;
-    }
-    
-    ds->reset();
-    ds->select(addr);
-    ds->write(0x44,1); // start conversion, with parasite power on at the end
-    
-    byte present = ds->reset();
-    ds->select(addr);
-    ds->write(0xBE); // Read Scratchpad
-    
-    for (int i = 0; i < 9; i++) { // we need 9 bytes
-      data[i] = ds->read();
-    }
-    
-    ds->reset_search();
-    
-    byte MSB = data[1];
-    byte LSB = data[0];
-
+    dst->requestTemperatures();
     lastTemp = currentTemp;
-    
-    float tempRead = ((MSB << 8) | LSB); //using two's compliment
-    float currentTemp = (tempRead / 16);
-
+    currentTemp = dst->getTempCByIndex(0); // assuming that there is just one sensor on the bus
     return currentTemp;
   }
 };
