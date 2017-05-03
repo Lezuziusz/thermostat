@@ -16,8 +16,8 @@ const byte TEMPS_1 = 7;
 const byte REL_1 = 8;
 
 // Buttons
-const byte BTN_DOWN = A1;
-const byte BTN_UP = A2;
+const byte BTN_LEFT = A1;
+const byte BTN_RIGHT = A2;
 
 // LCD display pins
 const byte LCD_RS = 12;
@@ -36,11 +36,13 @@ LiquidCrystal *lcd;
 // Temperature sensors
 TempSensor *temps1;
 
-Button *btnDown;
-Button *btnUp;
-
 // Relays
 Relay *relay1;      // relay 1
+
+// Buttons
+Button *btnLeft;
+Button *btnRight;
+
 
 // 
 byte mode = 0;
@@ -84,9 +86,11 @@ void setup(void) {
   lcd->createChar(0, bkslash);
   
   temps1 = new TempSensor(TEMPS_1);
-  btnDown = new Button(BTN_DOWN);
-  btnUp = new Button(BTN_UP);
   relay1 = new Relay(REL_1);
+    
+  btnLeft = new Button(BTN_LEFT);
+  btnRight = new Button(BTN_RIGHT);
+
   lcd->begin(16, 2);
   
   lcd->setCursor(0, 0);
@@ -186,10 +190,10 @@ void loop(void) {
 
   // manage buttons ------------------------------
   // check if any of buttons has been released
-  bool b1 = btnDown->check(LOW);
-  bool b2 = btnUp->check(LOW);
+  bool bLeft = btnLeft->check(LOW);
+  bool bRight = btnRight->check(LOW);
 
-  if (!b1 && !b2) 
+  if (!bLeft && !bRight) 
     switch (mode) {
       modeEnd = millis()+MODE_DURATION;
       case MODE_NORMAL:
@@ -213,15 +217,15 @@ void loop(void) {
     cfg.print();
   }
 
-  if (btnUp->isDown() || btnDown->isDown()){
+  if (btnLeft->isDown() || btnRight->isDown()){
     switch (mode) {
       case MODE_CONFIG_TEMP: 
-        if (btnDown->isDown()) {
+        if (btnLeft->isDown()) {
           cfg.data.temp -= tempDelta;
           dp("-");
         }
         
-        if (btnUp->isDown()) {
+        if (btnRight->isDown()) {
           cfg.data.temp += tempDelta;
           dp("+");
         }
