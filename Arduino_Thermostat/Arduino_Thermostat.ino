@@ -206,54 +206,49 @@ void loop(void) {
   // manage keyboard ------------------------------
   kbd.check();
   byte key = kbd.read();
+  
   if (key > 0){
     dp("Keyboard ");
     dpln(key);
+    modeEnd = millis()+MODE_DURATION;  // key pressed, extend mode duration
   }
 
-  switch (key) {
-    case KBD_CODE_SELECT: // both LEFT & RIGHT pushed
-      switch (mode) {
-        case MODE_NORMAL:
-            dpln("Set TEMP start");
-            mode = MODE_CONFIG_TEMP;
-          break;
-        case MODE_CONFIG_TEMP:
-            dpln(F("Set OP start"));
-            mode = MODE_CONFIG_OP;
-          break;
-        case MODE_CONFIG_OP:
-          dpln(F("Set TEMP start"));
+  switch (mode) {
+    case MODE_NORMAL: // ------------- normal mode - can enter config mode      
+      switch(key) {
+        case KBD_CODE_SELECT:
+          dpln("Set TEMP start");
           mode = MODE_CONFIG_TEMP;
-          break;
+          break;        
       }
-      modeEnd = millis()+MODE_DURATION;
-      break;
-      
-    case KBD_CODE_LEFT:
-      switch (mode) {
-        case MODE_CONFIG_TEMP:
+      break;  
+    case MODE_CONFIG_TEMP:  // ------- configuring temperature
+      switch(key) {
+        case KBD_CODE_SELECT:
+          dpln("Set OP start");
+          mode = MODE_CONFIG_OP;
+          break;
+        case KBD_CODE_LEFT:
           cfg.data.temp -= tempDelta;
           dp("-");
           break;
-        case MODE_CONFIG_OP:
-          cfg.data.cooling = !cfg.data.cooling;
-          break;
-      }
-      break;
-      
-    case KBD_CODE_RIGHT:
-      switch (mode) {
-        case MODE_CONFIG_TEMP:
+        case KBD_CODE_RIGHT:
           cfg.data.temp += tempDelta;
           dp("+");
           break;
-        case MODE_CONFIG_OP:
+      }
+      break;
+    case MODE_CONFIG_OP: // --------- configuring operation type
+      switch(key) {
+        case KBD_CODE_SELECT:
+          dpln("Set TEMP start");
+          mode = MODE_CONFIG_TEMP;
+          break;
+        case KBD_CODE_LEFT:
+        case KBD_CODE_RIGHT:
           cfg.data.cooling = !cfg.data.cooling;
           break;
       }    
-      break;
-      
   }
 
   if (mode != MODE_NORMAL && millis() > modeEnd){
@@ -262,8 +257,6 @@ void loop(void) {
     cfg.write();
     cfg.print();
   }
-
-  //delay(400);
 
 }
 

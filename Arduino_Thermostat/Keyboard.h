@@ -7,6 +7,9 @@
 #define KBD_KEY_MECHANICAL  0
 #define KBD_KEY_CAPACITIVE  1
 
+#define KBD_REPEAT_DELAY    200
+#define KBD_SAME_KEY_DELAY  800
+
 struct KeyDef {
   byte type;
   byte pin1;
@@ -17,13 +20,7 @@ struct KeyDef {
 class Keyboard {
   public:
   Keyboard(int delay){
-    buffLen = 0;
-    buffStart = 0;
-    buffEnd = 0;
-    keyCount = 0;
-    combKeyCount = 0;
     this->delay = delay;
-    isDelay = true;
     delayTimeEnd = millis();
   }
 
@@ -78,6 +75,14 @@ class Keyboard {
   }
 
   void push(byte k){
+    if ( lastKey == k 
+      && (sameKeyTime > millis() || (isRepeatMode && sameKeyRepeatTime > millis())) ) {
+      dpln("Ignoring key");
+      return;
+    }
+
+    isRepeatMode = (k == lastKey);
+      
     dp("KBD Push ");
     dpln(k);
       
@@ -87,6 +92,14 @@ class Keyboard {
     if (buffEnd >= KBD_BUFF_SIZE)
       buffEnd = 0;
     isDelay = true;  
+    
+    if (isRepeatMode)
+      sameKeyRepeatTime = millis() + KBD_REPEAT_DELAY;
+    
+    sameKeyTime = millis() + KBD_SAME_KEY_DELAY;
+      
+    lastKey = k;
+    
     delayTimeEnd = millis()+delay;
   }
 
@@ -113,17 +126,24 @@ class Keyboard {
 
   private:
   char buff[KBD_BUFF_SIZE];
-  int buffLen;
-  int buffStart;
-  int buffEnd;
+  int buffLen = 0;
+  int buffStart = 0;
+  int buffEnd = 0;
+  
+  byte lastKey;
+
+  bool isDelay = true;
   int delay;
-  bool isDelay;
   unsigned long delayTimeEnd;
 
+  bool isRepeatMode = false;
+  unsigned long sameKeyTime;
+  unsigned long sameKeyRepeatTime;
+
   KeyDef keys[KBD_SIZE];
-  byte keyCount;
+  byte keyCount = 0;
   KeyDef combKeys[KBD_SIZE];
-  byte combKeyCount;
+  byte combKeyCount = 0;
 
   
 };
