@@ -6,7 +6,7 @@
 #include "Config.h"
 #include "Keyboard.h"
 
-#define VERSION "v1.3"
+#define VERSION "v1.4"
 
 //############ HW CONFIG
 // pin connected to temperature sensor
@@ -46,7 +46,7 @@ Relay *relay1;      // relay 1
 
 #define KEYB_OFF_DELAY_LONG   500
 #define KEYB_OFF_DELAY_SHORT  200
-Keyboard kbd(200);
+Keyboard kbd(250);
 
 // 
 byte mode = 0;
@@ -59,8 +59,8 @@ unsigned long modeEnd = 0;
 #define MODE_CONFIG_OP    2
 
 bool blinkPhase = true;
-int blinkOff = 500;
-int blinkOn = 500;
+int blinkOff = 150;
+int blinkOn = 250;
 unsigned long blinkStateEnd = millis();
 float temp1 = 0;
 float oldtemp1 = 0;
