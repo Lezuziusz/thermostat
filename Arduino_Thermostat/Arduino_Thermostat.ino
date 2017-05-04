@@ -4,8 +4,9 @@
 #include "Relay.h"
 #include "SensorAsync.h"
 #include "Config.h"
+#include "Keyboard.h"
 
-#define VERSION "v1.2"
+#define VERSION "v1.3"
 
 //############ HW CONFIG
 // pin connected to temperature sensor
@@ -39,12 +40,19 @@ TempSensor *temps1;
 Relay *relay1;      // relay 1
 
 // Keyboard
+#define KBD_CODE_LEFT         1
+#define KBD_CODE_RIGHT        2
+#define KBD_CODE_SELECT       11
+
 #define KEYB_OFF_DELAY_LONG   500
 #define KEYB_OFF_DELAY_SHORT  200
+/*
 Button *btnLeft;
 Button *btnRight;
 bool keybOff = false;
 unsigned long keybOffTime;
+*/
+Keyboard kbd(200);
 
 // 
 byte mode = 0;
@@ -88,16 +96,21 @@ void setup(void) {
   Serial.begin(115200);
   Serial.print("Thermostat ");
   Serial.println(VERSION);
-  
+
+  // register single keys
+  kbd.registerKey(BTN_LEFT, KBD_CODE_LEFT, KBD_KEY_CAPACITIVE);
+  kbd.registerKey(BTN_RIGHT, KBD_CODE_RIGHT, KBD_KEY_CAPACITIVE);
+
+  // register combined keys
+  kbd.registerKey(BTN_LEFT, BTN_RIGHT, KBD_CODE_SELECT, KBD_KEY_CAPACITIVE);
+
+  // init display
   lcd = new LiquidCrystal(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
   lcd->createChar(0, bkslash);  // add backslah char as char(0)
   
   temps1 = new TempSensor(TEMPS_1);
   relay1 = new Relay(REL_1);
     
-  btnLeft = new Button(BTN_LEFT);
-  btnRight = new Button(BTN_RIGHT);
-
   lcd->begin(16, 2);
   
   lcd->setCursor(0, 0);
@@ -117,7 +130,7 @@ void setup(void) {
 }
 
 void loop(void) {
-  
+    
   temp1 = temps1->getTemp();
   //dpln(btnLeft->isDown());
   //dpln(btnRight->isDown());
@@ -198,29 +211,57 @@ void loop(void) {
     }
   }
 
-  // manage buttons ------------------------------
-  // check if any of buttons has been released
-  bool bLeft = btnLeft->check(LOW);
-  bool bRight = btnRight->check(LOW);
+  // manage keyboard ------------------------------
+  kbd.check();
+  byte key = kbd.read();
+  if (key > 0){
+    dp("Keyboard ");
+    dpln(key);
+  }
 
-  if (!bLeft && !bRight) {
-    switch (mode) {
-      modeEnd = millis()+MODE_DURATION;
-      case MODE_NORMAL:
-          dpln("Set TEMP start");
+  switch (key) {
+    case KBD_CODE_SELECT: // both LEFT & RIGHT pushed
+      switch (mode) {
+        case MODE_NORMAL:
+            dpln("Set TEMP start");
+            mode = MODE_CONFIG_TEMP;
+          break;
+        case MODE_CONFIG_TEMP:
+            dpln(F("Set OP start"));
+            mode = MODE_CONFIG_OP;
+          break;
+        case MODE_CONFIG_OP:
+          dpln(F("Set TEMP start"));
           mode = MODE_CONFIG_TEMP;
-        break;
-      case MODE_CONFIG_TEMP:
-          dpln(F("Set OP start"));
-          mode = MODE_CONFIG_OP;
-        break;
-      case MODE_CONFIG_OP:
-        dpln(F("Set TEMP start"));
-        mode = MODE_CONFIG_TEMP;
-        break;
-    }
-    keybOff = true;
-    keybOffTime = millis() + KEYB_OFF_DELAY_LONG;
+          break;
+      }
+      modeEnd = millis()+MODE_DURATION;
+      break;
+      
+    case KBD_CODE_LEFT:
+      switch (mode) {
+        case MODE_CONFIG_TEMP:
+          cfg.data.temp -= tempDelta;
+          dp("-");
+          break;
+        case MODE_CONFIG_OP:
+          cfg.data.cooling = !cfg.data.cooling;
+          break;
+      }
+      break;
+      
+    case KBD_CODE_RIGHT:
+      switch (mode) {
+        case MODE_CONFIG_TEMP:
+          cfg.data.temp += tempDelta;
+          dp("+");
+          break;
+        case MODE_CONFIG_OP:
+          cfg.data.cooling = !cfg.data.cooling;
+          break;
+      }    
+      break;
+      
   }
 
   if (mode != MODE_NORMAL && millis() > modeEnd){
@@ -230,34 +271,7 @@ void loop(void) {
     cfg.print();
   }
 
-  if (!keybOff){
-    if (btnLeft->isDown() || btnRight->isDown()){
-      switch (mode) {
-        case MODE_CONFIG_TEMP: 
-          if (btnLeft->isDown()) {
-            cfg.data.temp -= tempDelta;
-            dp("-");
-          }
-          
-          if (btnRight->isDown()) {
-            cfg.data.temp += tempDelta;
-            dp("+");
-          }
-          
-          break;
-        case MODE_CONFIG_OP:
-            cfg.data.cooling = !cfg.data.cooling;
-          break;
-        
-      }
-      modeEnd = millis()+MODE_DURATION;
-      keybOff = true;
-      keybOffTime = millis() + KEYB_OFF_DELAY_SHORT;
-    }
-  } else {
-    if (keybOffTime < millis())
-      keybOff = false;
-  }
+  //delay(400);
 
 }
 
