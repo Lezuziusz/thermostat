@@ -6,7 +6,7 @@
 #include "Config.h"
 #include "Keyboard.h"
 
-#define VERSION "v1.4"
+#define VERSION "v1.5"
 
 //############ HW CONFIG
 // pin connected to temperature sensor
