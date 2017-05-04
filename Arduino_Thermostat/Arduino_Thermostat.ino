@@ -124,10 +124,8 @@ void setup(void) {
 }
 
 void loop(void) {
-    
+  // read temperature  
   temp1 = temps1->getTemp();
-  //dpln(btnLeft->isDown());
-  //dpln(btnRight->isDown());
 
   // following block is only to decrease display rate durig debug
   #ifdef DEBUG_MODE
