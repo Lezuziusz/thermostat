@@ -1,15 +1,14 @@
 #include "debug.h"
-#include <OneWire.h>
 #include <LiquidCrystal.h>
 #include "Button.h"
 #include "Relay.h"
-#include "Sensor.h"
+#include "SensorAsync.h"
 #include "Config.h"
 
-#define VERSION "v1.1"
+#define VERSION "v1.2"
 
 //############ HW CONFIG
-// pin connected to temperature sensor DS18S20
+// pin connected to temperature sensor
 const byte TEMPS_1 = 7;
 
 // Relays
@@ -39,10 +38,13 @@ TempSensor *temps1;
 // Relays
 Relay *relay1;      // relay 1
 
-// Buttons
+// Keyboard
+#define KEYB_OFF_DELAY_LONG   500
+#define KEYB_OFF_DELAY_SHORT  200
 Button *btnLeft;
 Button *btnRight;
-
+bool keybOff = false;
+unsigned long keybOffTime;
 
 // 
 byte mode = 0;
@@ -61,6 +63,7 @@ unsigned long blinkStateEnd = millis();
 float temp1 = 0;
 float oldtemp1 = 0;
 
+// backslash character for animation - not available in standard char-set
 byte bkslash[8] = {
   B00000,
   B10000,
@@ -71,19 +74,21 @@ byte bkslash[8] = {
   B00000,
 };
 
+// characters for animantion - char(0) is backslash
 char anim[] = {'-',0,'|','/'};
 byte anim1State = 0;
 unsigned long anim1StateEnd = millis();
 #define ANIM_STATE_COUNT  4
 #define ANIM_DURATION     200
 
+// data structure contianing configuration
 ConfigEE cfg;
 
 void setup(void) {
   Serial.begin(115200);
   
   lcd = new LiquidCrystal(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
-  lcd->createChar(0, bkslash);
+  lcd->createChar(0, bkslash);  // add backslah char as char(0)
   
   temps1 = new TempSensor(TEMPS_1);
   relay1 = new Relay(REL_1);
@@ -110,7 +115,10 @@ void setup(void) {
 }
 
 void loop(void) {
+  
   temp1 = temps1->getTemp();
+  //dpln(btnLeft->isDown());
+  //dpln(btnRight->isDown());
 
   // following block is only to decrease display rate durig debug
   #ifdef DEBUG_MODE
@@ -193,7 +201,7 @@ void loop(void) {
   bool bLeft = btnLeft->check(LOW);
   bool bRight = btnRight->check(LOW);
 
-  if (!bLeft && !bRight) 
+  if (!bLeft && !bRight) {
     switch (mode) {
       modeEnd = millis()+MODE_DURATION;
       case MODE_NORMAL:
@@ -209,6 +217,9 @@ void loop(void) {
         mode = MODE_CONFIG_TEMP;
         break;
     }
+    keybOff = true;
+    keybOffTime = millis() + KEYB_OFF_DELAY_LONG;
+  }
 
   if (mode != MODE_NORMAL && millis() > modeEnd){
     mode = MODE_NORMAL;
@@ -217,29 +228,34 @@ void loop(void) {
     cfg.print();
   }
 
-  if (btnLeft->isDown() || btnRight->isDown()){
-    switch (mode) {
-      case MODE_CONFIG_TEMP: 
-        if (btnLeft->isDown()) {
-          cfg.data.temp -= tempDelta;
-          dp("-");
-        }
+  if (!keybOff){
+    if (btnLeft->isDown() || btnRight->isDown()){
+      switch (mode) {
+        case MODE_CONFIG_TEMP: 
+          if (btnLeft->isDown()) {
+            cfg.data.temp -= tempDelta;
+            dp("-");
+          }
+          
+          if (btnRight->isDown()) {
+            cfg.data.temp += tempDelta;
+            dp("+");
+          }
+          
+          break;
+        case MODE_CONFIG_OP:
+            cfg.data.cooling = !cfg.data.cooling;
+          break;
         
-        if (btnRight->isDown()) {
-          cfg.data.temp += tempDelta;
-          dp("+");
-        }
-        
-        break;
-      case MODE_CONFIG_OP:
-          cfg.data.cooling = !cfg.data.cooling;
-        break;
-      
+      }
+      modeEnd = millis()+MODE_DURATION;
+      keybOff = true;
+      keybOffTime = millis() + KEYB_OFF_DELAY_SHORT;
     }
-    modeEnd = millis()+MODE_DURATION;
+  } else {
+    if (keybOffTime < millis())
+      keybOff = false;
   }
-
-  delay(100);
 
 }
 
