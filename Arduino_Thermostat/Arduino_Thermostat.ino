@@ -46,12 +46,6 @@ Relay *relay1;      // relay 1
 
 #define KEYB_OFF_DELAY_LONG   500
 #define KEYB_OFF_DELAY_SHORT  200
-/*
-Button *btnLeft;
-Button *btnRight;
-bool keybOff = false;
-unsigned long keybOffTime;
-*/
 Keyboard kbd(200);
 
 // 
