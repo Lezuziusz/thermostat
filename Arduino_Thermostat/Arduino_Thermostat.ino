@@ -86,6 +86,8 @@ ConfigEE cfg;
 
 void setup(void) {
   Serial.begin(115200);
+  Serial.print("Thermostat ");
+  Serial.println(VERSION);
   
   lcd = new LiquidCrystal(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
   lcd->createChar(0, bkslash);  // add backslah char as char(0)
