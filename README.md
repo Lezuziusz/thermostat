@@ -8,6 +8,7 @@ Complete thermostat solution :-)
 * relay used is good for switching up to 100VDC, but intended operation uses 24VDC + contactor (e.g. Moeller) to manage high-power devices/motors
 
 # Installation
+See (https://github.com/sovcik/thermostat/blob/master/usage_diagram.png)
 1. mount temperature sensor
 1. connect BLACK cable from thermostat relay to 24VDC power source
 1. connect RED cable from thermostat relay to VCC side of 24VDC contactor coil
